@@ -1,9 +1,11 @@
 package io.github.loxygen.aimlessbot.lib.client
 
-import io.github.loxygen.aimlessbot.cmds.OoooohShiiit
-import io.github.loxygen.aimlessbot.lib.commands.CommandExecutor
-import io.github.loxygen.aimlessbot.cmds.Ping
+import io.github.loxygen.aimlessbot.cmds.misc.Mixed
+import io.github.loxygen.aimlessbot.cmds.misc.OoooohShiiit
+import io.github.loxygen.aimlessbot.cmds.misc.Ping
 import io.github.loxygen.aimlessbot.lib.commands.CommandResult
+import io.github.loxygen.aimlessbot.lib.commands.abc.CommandImplementer
+import io.github.loxygen.aimlessbot.lib.commands.annotations.Command
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.entities.Activity
@@ -14,25 +16,22 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter
 /**
  * Discordのクライアント。
  */
-object Client : ListenerAdapter(){
+object Client : ListenerAdapter() {
 
     /**
      * Prefix付きのコマンドを実行するオブジェクトたち
      */
-    val commandExecutors: List<CommandExecutor> = listOf(
-        Ping
-    )
-    /**
-     * プレフィックスがなくても発火するコマンドを実行するオブジェクトたち
-     */
-    val prefixlessCommandExecutor: List<CommandExecutor> = listOf(
-        OoooohShiiit
+    private val COMMAND_IMPLEMENTERS: List<CommandImplementer> = listOf(
+        Ping,
+        OoooohShiiit,
+        Mixed
     )
 
     /**
      * コマンドの接頭辞
      */
     val PREFIX = "//"
+
     /**
      * JDA実体
      */
@@ -59,34 +58,44 @@ object Client : ListenerAdapter(){
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
 
-        if (event.author.isBot) {
+        if (event.author.isBot || event.message.contentDisplay.isEmpty() || event.channel.idLong != 695976154779222047) {
             return
         }
 
-        var rawText = event.message.contentDisplay
-        var commandExecutorList: List<CommandExecutor> = prefixlessCommandExecutor
-        val prefixness = event.message.contentDisplay.startsWith(PREFIX)
-        if(prefixness) {
-            rawText = event.message.contentDisplay.substring(PREFIX.length)
-            commandExecutorList = commandExecutors
-        }
-        val commandArgs = rawText.split(" ")
+        val doesHasPrefix = event.message.contentDisplay.startsWith(PREFIX)
+        val rawText = event.message.contentDisplay.substring(if (doesHasPrefix) 2 else 0)
+        val content = rawText.split(" ")
 
-        for(command in commandExecutorList) {
-            val isCommandMatched = (prefixness && commandArgs[0] == command.identify) ||
-                                           (!prefixness && commandArgs[0].indexOf(command.identify) != -1)
-            if (isCommandMatched) {
-                when(command.parseCommand(commandArgs.subList(1, commandArgs.size), event)) {
-                    CommandResult.SUCCESS -> {}
-                    CommandResult.FAILED -> {event.channel.sendMessage("ズサーッ！(コマンドがコケた音)").queue()}
-                    CommandResult.INVALID_ARGUMENTS -> {event.channel.sendMessage("引数がおかしいみたいです").queue()}
-                    CommandResult.UNKNOWN_COMMAND -> {event.channel.sendMessage("そのサブコマンド is 何").queue()}
+        for (command in COMMAND_IMPLEMENTERS) {
+
+            if (doesHasPrefix && command.identify != content[0]) continue
+            val result = command.parseCommand(
+                content.subList(if (doesHasPrefix) 1 else 0),
+                event,
+                doesHasPrefix
+            )
+
+            if (!doesHasPrefix && result == CommandResult.UNKNOWN_SUB_COMMAND) continue
+
+            when (result) {
+                CommandResult.SUCCESS -> {}
+                CommandResult.FAILED -> {
+                    event.channel.sendMessage("ズサーッ！(コマンドがコケた音)").queue()
                 }
-                return
+                CommandResult.INVALID_ARGUMENTS -> {
+                    event.channel.sendMessage("引数がおかしいみたいです").queue()
+                }
+                CommandResult.UNKNOWN_SUB_COMMAND -> {
+                    event.channel.sendMessage("そのサブコマンド is 何").queue()
+                }
             }
+            return
         }
 
-        if(prefixness) event.channel.sendMessage("それ is 何").queue()
+        if (doesHasPrefix) event.channel.sendMessage("それ is 何").queue()
     }
+}
 
+private fun <E> List<E>.subList(fromIndex: Int): List<E> {
+    return this.subList(fromIndex, this.size)
 }
