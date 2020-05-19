@@ -3,8 +3,8 @@ package io.github.loxygen.aimlessbot.lib.commands.abc
 import io.github.loxygen.aimlessbot.lib.commands.CommandInfo
 import io.github.loxygen.aimlessbot.lib.commands.CommandResult
 import io.github.loxygen.aimlessbot.lib.commands.annotations.Argument
-import io.github.loxygen.aimlessbot.lib.commands.annotations.SubCommand
 import io.github.loxygen.aimlessbot.lib.commands.annotations.PrefixlessCommand
+import io.github.loxygen.aimlessbot.lib.commands.annotations.SubCommand
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import java.lang.reflect.Method
 import kotlin.math.min
@@ -97,10 +97,10 @@ abstract class CommandExecutor {
     * @param hasPrefix プレフィックス付きで実行されたか
     */
    private fun fetchSubCommandMethodToRun(args: List<String>, hasPrefix: Boolean): Method? {
-      return (if (hasPrefix)
+      return if (hasPrefix)
          fetchPrefixfulCommandMethodToRun(if (args.isNotEmpty()) args[0] else "", args.size - 1)
       else
-         fetchPrefixlessCommandMethodToRun(args[0]))
+         fetchPrefixlessCommandMethodToRun(args[0])
    }
 
    /**

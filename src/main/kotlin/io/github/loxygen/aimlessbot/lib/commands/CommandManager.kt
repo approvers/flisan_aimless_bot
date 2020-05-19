@@ -14,7 +14,7 @@ object CommandManager {
    /**
     * コマンドを実行するオブジェクトたち。
     */
-   private val COMMAND_IMPLEMENTERS: List<CommandExecutor> = listOf(
+   private val COMMAND_EXECUTORS: List<CommandExecutor> = listOf(
       Ping,
       OoooohShiiit,
       Mixed
@@ -35,9 +35,14 @@ object CommandManager {
       val rawText = event.message.contentDisplay.substring(if (doesHasPrefix) PREFIX.length else 0)
       val content = rawText.split(" ")
 
+      if (doesHasPrefix && content[0] == "help") {
+         sendHelp(event)
+         return
+      }
+
       // 実行する
       var result: CommandResult = CommandResult.NOT_APPLICABLE
-      for (command in COMMAND_IMPLEMENTERS) {
+      for (command in COMMAND_EXECUTORS) {
          result = command.executeCommand(content, event, doesHasPrefix)
          if (result != CommandResult.NOT_APPLICABLE) break
       }
@@ -60,6 +65,19 @@ object CommandManager {
          }
       }
 
+   }
+
+   fun sendHelp(event: MessageReceivedEvent) {
+      var helpText = "***†Flisan Aimless Bot†***\n```"
+
+      for (executor in COMMAND_EXECUTORS) {
+         if (executor.commandInfo == null) continue
+         helpText += "${executor.commandInfo!!.name} (//${executor.commandInfo!!.identify})\n"
+         helpText += "  ${executor.commandInfo!!.description}\n``````"
+      }
+      helpText = helpText.substring(0, helpText.length - 3)
+      helpText += "各コマンドの詳細は`//<command.name>`を叩くと表示されます"
+      event.channel.sendMessage(helpText).queue()
    }
 
 }

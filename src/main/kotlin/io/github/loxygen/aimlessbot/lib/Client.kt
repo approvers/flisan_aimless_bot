@@ -19,6 +19,11 @@ object Client : ListenerAdapter() {
    private lateinit var discordClient: JDA
 
    /**
+    *
+    */
+   private var loggingChannelId: Long = -1
+
+   /**
     * Botではあるけど弾かないユーザーのID
     */
    private val userIdsWhiteList = listOf(
@@ -32,18 +37,19 @@ object Client : ListenerAdapter() {
     * コマンドを実行する
     * @param token Discordのトークン
     */
-   fun launch(token: String) {
+   fun launch(token: String, loggingChannelId: Long) {
 
       val jdaBuilder = JDABuilder.createDefault(token)
       jdaBuilder.setActivity(Activity.of(Activity.ActivityType.DEFAULT, "hennlo world"))
       jdaBuilder.addEventListeners(Client)
       discordClient = jdaBuilder.build()
+      this.loggingChannelId = loggingChannelId
 
    }
 
    override fun onReady(event: ReadyEvent) {
       println("ready confirmed!!!")
-      val channel = discordClient.getTextChannelById(695976154779222047) ?: error("sry where is channel")
+      val channel = discordClient.getTextChannelById(this.loggingChannelId) ?: error("there's no such channel")
       channel.sendMessage("***†Flisan Aimless Bot Ready†***").queue()
    }
 
