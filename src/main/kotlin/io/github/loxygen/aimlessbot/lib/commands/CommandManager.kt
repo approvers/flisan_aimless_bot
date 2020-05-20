@@ -4,6 +4,7 @@ import io.github.loxygen.aimlessbot.cmds.tests.Mixed
 import io.github.loxygen.aimlessbot.cmds.tests.OoooohShiiit
 import io.github.loxygen.aimlessbot.cmds.tests.Ping
 import io.github.loxygen.aimlessbot.lib.commands.abc.CommandExecutor
+import net.dv8tion.jda.api.entities.MessageChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
 /**
@@ -36,15 +37,21 @@ object CommandManager {
       val content = rawText.split(" ")
 
       if (doesHasPrefix && content[0] == "help") {
-         sendHelp(event)
+         sendHelp(event.channel)
          return
       }
 
       // 実行する
-      var result: CommandResult = CommandResult.NOT_APPLICABLE
+      var result: CommandResult = CommandResult.UNKNOWN_MAIN_COMMAND
       for (command in COMMAND_EXECUTORS) {
-         result = command.executeCommand(content, event, doesHasPrefix)
-         if (result != CommandResult.NOT_APPLICABLE) break
+         if (command.isApplicable(
+               if (doesHasPrefix) content[0] else event.message.contentDisplay,
+               doesHasPrefix
+            )
+         ) {
+            result = command.executeCommand(content, event, doesHasPrefix)
+            break
+         }
       }
 
       // 結果に応じて処理をする
@@ -57,7 +64,7 @@ object CommandManager {
          CommandResult.INVALID_ARGUMENTS -> {
             event.channel.sendMessage("引数がおかしいみたいです").queue()
          }
-         CommandResult.NOT_APPLICABLE -> {
+         CommandResult.UNKNOWN_MAIN_COMMAND -> {
             if (doesHasPrefix) event.channel.sendMessage("それ is 何").queue()
          }
          CommandResult.UNKNOWN_SUB_COMMAND -> {
@@ -67,7 +74,7 @@ object CommandManager {
 
    }
 
-   fun sendHelp(event: MessageReceivedEvent) {
+   private fun sendHelp(channel: MessageChannel) {
       var helpText = "***†Flisan Aimless Bot†***\n```"
 
       for (executor in COMMAND_EXECUTORS) {
@@ -77,7 +84,7 @@ object CommandManager {
       }
       helpText = helpText.substring(0, helpText.length - 3)
       helpText += "各コマンドの詳細は`//<command.name>`を叩くと表示されます"
-      event.channel.sendMessage(helpText).queue()
+      channel.sendMessage(helpText).queue()
    }
 
 }

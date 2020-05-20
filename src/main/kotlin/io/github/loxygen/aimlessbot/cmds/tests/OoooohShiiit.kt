@@ -11,7 +11,7 @@ object OoooohShiiit : CommandExecutor() {
    override val commandInfo: CommandInfo? = null
 
    @PrefixlessCommand(triggerRegex = "o+hshi+t")
-   override fun execNoSubCommand(args: List<String>, event: MessageReceivedEvent): CommandResult {
+   fun ooooohShiiiit(content: String, event: MessageReceivedEvent): CommandResult {
       event.channel.sendMessage("a rat!").queue()
       return CommandResult.SUCCESS
    }

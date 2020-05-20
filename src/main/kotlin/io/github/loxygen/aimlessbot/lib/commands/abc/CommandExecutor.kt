@@ -24,29 +24,29 @@ abstract class CommandExecutor {
    /**
     * Prefixfulコマンドを実装するメソッドとそれについてるアノテーションのキャッシュ
     */
-   private val prefixfulMethodCache : List<Pair<Method, SubCommand>>
+   private val prefixfulMethodCache: List<Pair<Method, SubCommand>>
 
    /**
     * Prefixfulコマンドを実装するメソッドとそれについてるアノテーションのキャッシュ
     */
-   private val prefixlessMethodCache : List<Pair<Method, PrefixlessCommand>>
+   private val prefixlessMethodCache: List<Pair<Method, PrefixlessCommand>>
 
    init {
       // メソッドは変わらないし毎回リフレクションゴリゴリするの嫌なので(個人の感想)
       // ここでメソッドとアノテーションをキャッシュしてしまいます
-      val prefixfulMethods : MutableList<Pair<Method, SubCommand>> = mutableListOf()
-      val prefixlessMethods : MutableList<Pair<Method, PrefixlessCommand>> = mutableListOf()
+      val prefixfulMethods: MutableList<Pair<Method, SubCommand>> = mutableListOf()
+      val prefixlessMethods: MutableList<Pair<Method, PrefixlessCommand>> = mutableListOf()
 
-      for(method in this.javaClass.methods) {
+      for (method in this.javaClass.methods) {
          if (method.returnType.name != "io.github.loxygen.aimlessbot.lib.commands.CommandResult") continue
 
          val commandAnt = method.getAnnotation(SubCommand::class.java)
          val prefixlessCommandAnt = method.getAnnotation(PrefixlessCommand::class.java)
 
-         if(commandAnt != null) {
+         if (commandAnt != null) {
             prefixfulMethods.add(Pair(method, commandAnt))
          }
-         if(prefixlessCommandAnt != null) {
+         if (prefixlessCommandAnt != null) {
             prefixlessMethods.add(Pair(method, prefixlessCommandAnt))
          }
       }
@@ -54,6 +54,13 @@ abstract class CommandExecutor {
       prefixfulMethodCache = prefixfulMethods.toList()
       prefixlessMethodCache = prefixlessMethods.toList()
 
+   }
+
+   fun isApplicable(query: String, hasPrefix: Boolean): Boolean {
+      return if (hasPrefix)
+         query == this.commandInfo?.identify
+      else
+         this.prefixlessMethodCache.find { Regex(it.second.triggerRegex).containsMatchIn(query) } != null
    }
 
    /**
@@ -65,20 +72,35 @@ abstract class CommandExecutor {
    fun executeCommand(content: List<String>, event: MessageReceivedEvent, hasPrefix: Boolean): CommandResult {
 
       // コマンドが違ったら帰る
-      if (hasPrefix && content[0] != this.commandInfo?.identify) return CommandResult.NOT_APPLICABLE
+      if (hasPrefix && content[0] != this.commandInfo?.identify)
+         throw IllegalArgumentException("そのメインコマンドはうちの子じゃありません")
+
+      val subCommandContent = content.subList((if (hasPrefix) 1 else 0), content.size)
+      val searchQuery =
+         if (hasPrefix)
+            if (subCommandContent.isNotEmpty()) subCommandContent[0] else ""
+         else
+            event.message.contentDisplay
 
       // 実行対象のメソッドを取得する
       val method = try {
-         fetchSubCommandMethodToRun(content.subList(if (hasPrefix) 1 else 0, content.size), hasPrefix)
+         fetchSubCommandMethodToRun(
+            searchQuery,
+            subCommandContent.size - 1,
+            hasPrefix
+         )
       } catch (e: IllegalArgumentException) {
          return CommandResult.INVALID_ARGUMENTS
-      } ?: return if(hasPrefix) CommandResult.UNKNOWN_SUB_COMMAND else CommandResult.NOT_APPLICABLE
+      } ?: return CommandResult.UNKNOWN_SUB_COMMAND
 
       // メソッドを叩いて実行結果を返す
       return try {
          method.invoke(
             this,
-            content.subList(min(content.size, if (hasPrefix) 2 else 1), content.size),
+            if (hasPrefix) content.subList(
+               min(content.size, if (hasPrefix) 2 else 1),
+               content.size
+            ) else event.message.contentDisplay,
             event
          ) as CommandResult
       } catch (e: Exception) {
@@ -87,20 +109,20 @@ abstract class CommandExecutor {
          println("Message: " + event.message.contentDisplay)
          println("Stacktrace:")
          e.printStackTrace()
-         CommandResult.FAILED
+         return CommandResult.FAILED
       }
    }
 
    /**
-    * 実行対象のコマンドを実装しているメソッドを返す
-    * @param args 引数
+    * 実行対象のコマンドを実装しているメソッドを探す
+    * @param query サブコマンド(接頭辞あり)、またはメッセージ全体(接頭辞なし)
     * @param hasPrefix プレフィックス付きで実行されたか
     */
-   private fun fetchSubCommandMethodToRun(args: List<String>, hasPrefix: Boolean): Method? {
+   private fun fetchSubCommandMethodToRun(query: String, argCount: Int, hasPrefix: Boolean): Method? {
       return if (hasPrefix)
-         fetchPrefixfulCommandMethodToRun(if (args.isNotEmpty()) args[0] else "", args.size - 1)
+         fetchPrefixfulCommandMethodToRun(query, argCount)
       else
-         fetchPrefixlessCommandMethodToRun(args[0])
+         fetchPrefixlessCommandMethodToRun(query)
    }
 
    /**
@@ -112,7 +134,7 @@ abstract class CommandExecutor {
 
       // サブコマンドが与えられていなければexecNoSubCommand()を返す
       if (identify == "") {
-         return this.javaClass.getMethod("execNoSubCommand", List::class.java, MessageReceivedEvent::class.java)
+         return this.javaClass.getMethod("execSingleCommand", List::class.java, MessageReceivedEvent::class.java)
       }
 
       for (method in this.prefixfulMethodCache) {
@@ -138,11 +160,11 @@ abstract class CommandExecutor {
 
    /**
     * 実行対象の接頭辞なしコマンドを実装しているメソッドを返す
-    * @param identify サブコマンドの識別文字
+    * @param content サブコマンドの識別文字
     */
-   private fun fetchPrefixlessCommandMethodToRun(identify: String): Method? {
+   private fun fetchPrefixlessCommandMethodToRun(content: String): Method? {
       for (method in this.prefixlessMethodCache) {
-         if (!Regex(method.second.triggerRegex).containsMatchIn(identify)) continue
+         if (!Regex(method.second.triggerRegex).containsMatchIn(content)) continue
          return method.first
       }
       return null
@@ -154,7 +176,7 @@ abstract class CommandExecutor {
     * @param args 引数
     * @param event メッセージを受信したイベント
     */
-   open fun execNoSubCommand(args: List<String>, event: MessageReceivedEvent): CommandResult {
+   open fun execSingleCommand(args: List<String>, event: MessageReceivedEvent): CommandResult {
       return this.sendHelpText(args, event)
    }
 

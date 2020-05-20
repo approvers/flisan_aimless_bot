@@ -1,4 +1,4 @@
-package io.github.loxygen.aimlessbot.lib
+package io.github.loxygen.aimlessbot.lib.client
 
 import io.github.loxygen.aimlessbot.lib.commands.CommandManager
 import net.dv8tion.jda.api.JDA
@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.events.ReadyEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
+import kotlin.system.exitProcess
 
 /**
  * Discordのクライアント。
@@ -19,47 +20,49 @@ object Client : ListenerAdapter() {
    private lateinit var discordClient: JDA
 
    /**
-    *
-    */
-   private var loggingChannelId: Long = -1
-
-   /**
     * Botではあるけど弾かないユーザーのID
     */
-   private val userIdsWhiteList = listOf(
-      685457071906619505, /* CLIいじるこるく */
-      685429240908218368, /* CLIすきすきloxy */
-      684655652182032404, /* CLIに引きこもるいっそう */
-      688345526181429267  /* フライさん via bot */
-   )
+   private lateinit var userIdsWhiteList: List<Long>
+
+   /**
+    * ログを出力するチャンネル。(デバッグ等で)
+    */
+   private var loggingChannelId: Long = -1
 
    /**
     * コマンドを実行する
     * @param token Discordのトークン
     */
-   fun launch(token: String, loggingChannelId: Long) {
+   fun launch(token: String, clientSettingInfo: ClientSettingInfo) {
 
       val jdaBuilder = JDABuilder.createDefault(token)
       jdaBuilder.setActivity(Activity.of(Activity.ActivityType.DEFAULT, "hennlo world"))
       jdaBuilder.addEventListeners(Client)
       discordClient = jdaBuilder.build()
-      this.loggingChannelId = loggingChannelId
+
+      loggingChannelId = clientSettingInfo.loggingChannelId
+      userIdsWhiteList = clientSettingInfo.botIdsWhiteList
 
    }
 
    override fun onReady(event: ReadyEvent) {
-      println("ready confirmed!!!")
-      val channel = discordClient.getTextChannelById(this.loggingChannelId) ?: error("there's no such channel")
+      val channel = discordClient.getTextChannelById(
+         loggingChannelId
+      )
+      if (channel == null) {
+         println("--- Setting Error: Logging Channel ID ---")
+         println("A channel which has Id $loggingChannelId doesn't exist!")
+         println("Bot will exit with exit code 1.")
+         exitProcess(1)
+      }
       channel.sendMessage("***†Flisan Aimless Bot Ready†***").queue()
    }
 
    override fun onMessageReceived(event: MessageReceivedEvent) {
 
       if ((event.author.isBot && !userIdsWhiteList.contains(event.author.idLong)) ||
-         event.message.contentDisplay.isEmpty() || event.channel.idLong != 695976154779222047
-      ) {
-         return
-      }
+         event.message.contentDisplay.isEmpty() || event.channel.idLong != loggingChannelId
+      ) return
 
       CommandManager.executeCommand(event)
 

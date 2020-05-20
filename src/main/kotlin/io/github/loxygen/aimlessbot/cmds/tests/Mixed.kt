@@ -10,11 +10,12 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
 object Mixed : CommandExecutor() {
 
-   override val commandInfo: CommandInfo? = CommandInfo(
-      identify = "mix",
-      name = "ミックス",
-      description = "Prefix付きとなしを一つのオブジェクトで使用できるか確認したいんです(語彙力)"
-   )
+   override val commandInfo: CommandInfo? =
+      CommandInfo(
+         identify = "mix",
+         name = "ミックス",
+         description = "Prefix付きとなしを一つのオブジェクトで使用できるか確認したいんです(語彙力)"
+      )
 
    @SubCommand(identify = "ああああああああああ！！！！", name = "*screams*", description = "プレフィックス付きの処理です")
    @Argument(count = 0, denyLess = false, denyMore = false)
@@ -24,8 +25,8 @@ object Mixed : CommandExecutor() {
    }
 
    @PrefixlessCommand(triggerRegex = "あ+！？(！？)+")
-   fun screamWithoutPrefix(args: List<String>, event: MessageReceivedEvent): CommandResult {
-      event.channel.sendMessage("いきなり叫ぶな！\n引数が${args.size}個あります:\n`${args}`").queue()
+   fun screamWithoutPrefix(message: String, event: MessageReceivedEvent): CommandResult {
+      event.channel.sendMessage("いきなり叫ぶな！\n以下のメッセージを承りました:\n`${message}`").queue()
       return CommandResult.SUCCESS
    }
 

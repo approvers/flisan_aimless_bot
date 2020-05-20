@@ -5,10 +5,9 @@ package io.github.loxygen.aimlessbot.lib.commands
  */
 enum class CommandResult {
    /**
-    * そもそもメインコマンドが違う、または該当するPrefixlessコマンドがなかったなどで
-    * そのCommandExectorでは処理できない
+    * メインコマンドが違う
     */
-   NOT_APPLICABLE,
+   UNKNOWN_MAIN_COMMAND,
 
    /**
     * そんなサブコマンドはない
