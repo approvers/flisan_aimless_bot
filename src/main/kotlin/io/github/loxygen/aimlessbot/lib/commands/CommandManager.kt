@@ -72,10 +72,10 @@ object CommandManager {
    private fun sendHelp(channel: MessageChannel) {
       var helpText = "***†Flisan Aimless Bot†***\n```"
 
-      for (executor in COMMANDS) {
-         if (executor.commandInfo == null) continue
-         helpText += "${executor.commandInfo!!.name} (//${executor.commandInfo!!.identify})\n"
-         helpText += "  ${executor.commandInfo!!.description}\n``````"
+      for (command in COMMANDS) {
+         if (command.commandInfo == null) continue
+         helpText += "${command.commandInfo!!.name} (//${command.commandInfo!!.identify})\n"
+         helpText += "  ${command.commandInfo!!.description}\n``````"
       }
       helpText = helpText.substring(0, helpText.length - 3)
       helpText += "各コマンドの詳細は`//<command.name>`を叩くと表示されます"
