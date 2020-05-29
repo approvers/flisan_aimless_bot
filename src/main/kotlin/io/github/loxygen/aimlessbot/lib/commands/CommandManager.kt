@@ -1,9 +1,8 @@
 package io.github.loxygen.aimlessbot.lib.commands
 
-import io.github.loxygen.aimlessbot.cmds.tests.Mixed
 import io.github.loxygen.aimlessbot.cmds.tests.OoooohShiiit
 import io.github.loxygen.aimlessbot.cmds.tests.Ping
-import io.github.loxygen.aimlessbot.lib.commands.abc.CommandExecutor
+import io.github.loxygen.aimlessbot.lib.commands.abc.ABCCommandExecutor
 import net.dv8tion.jda.api.entities.MessageChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
@@ -15,10 +14,9 @@ object CommandManager {
    /**
     * コマンドを実行するオブジェクトたち。
     */
-   private val COMMAND_EXECUTORS: List<CommandExecutor> = listOf(
+   private val COMMANDS: List<ABCCommandExecutor> = listOf(
       Ping,
-      OoooohShiiit,
-      Mixed
+      OoooohShiiit
    )
 
    /**
@@ -43,13 +41,9 @@ object CommandManager {
 
       // 実行する
       var result: CommandResult = CommandResult.UNKNOWN_MAIN_COMMAND
-      for (command in COMMAND_EXECUTORS) {
-         if (command.isApplicable(
-               if (doesHasPrefix) content[0] else event.message.contentDisplay,
-               doesHasPrefix
-            )
-         ) {
-            result = command.executeCommand(content, event, doesHasPrefix)
+      for (command in COMMANDS) {
+         if (command.isApplicable(if (doesHasPrefix) content[0] else event.message.contentDisplay)) {
+            result = command.runCommand(content, event)
             break
          }
       }
@@ -57,6 +51,7 @@ object CommandManager {
       // 結果に応じて処理をする
       when (result) {
          CommandResult.SUCCESS -> {
+            println("command succeeded:\n${event.author.name}\n  ${event.message.contentDisplay}")
          }
          CommandResult.FAILED -> {
             event.channel.sendMessage("ズサーッ！(コマンドがコケた音)").queue()
@@ -77,7 +72,7 @@ object CommandManager {
    private fun sendHelp(channel: MessageChannel) {
       var helpText = "***†Flisan Aimless Bot†***\n```"
 
-      for (executor in COMMAND_EXECUTORS) {
+      for (executor in COMMANDS) {
          if (executor.commandInfo == null) continue
          helpText += "${executor.commandInfo!!.name} (//${executor.commandInfo!!.identify})\n"
          helpText += "  ${executor.commandInfo!!.description}\n``````"
