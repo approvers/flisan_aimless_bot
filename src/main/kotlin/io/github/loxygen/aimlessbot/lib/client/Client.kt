@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.events.ReadyEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
+import kotlin.properties.Delegates
 import kotlin.system.exitProcess
 
 /**
@@ -27,7 +28,12 @@ object Client : ListenerAdapter() {
    /**
     * ログを出力するチャンネル。(デバッグ等で)
     */
-   private var loggingChannelId: Long = -1
+   private var loggingChannelId: Long by Delegates.notNull()
+
+   /**
+    * [loggingChannelId]以外のチャンネルで反応を抑制するか
+    */
+   private var reactOnlyLoggingChanel: Boolean by Delegates.notNull()
 
    /**
     * コマンドを実行する
@@ -35,13 +41,14 @@ object Client : ListenerAdapter() {
     */
    fun launch(token: String, clientSettingInfo: ClientSettingInfo) {
 
-      val jdaBuilder = JDABuilder.createDefault(token)
-      jdaBuilder.setActivity(Activity.of(Activity.ActivityType.DEFAULT, "hennlo world"))
-      jdaBuilder.addEventListeners(Client)
-      discordClient = jdaBuilder.build()
+      discordClient = JDABuilder.createDefault(token)
+         .setActivity(Activity.of(Activity.ActivityType.DEFAULT, "hennlo world"))
+         .addEventListeners(Client)
+         .build()
 
       loggingChannelId = clientSettingInfo.loggingChannelId
       userIdsWhiteList = clientSettingInfo.botIdsWhiteList
+      reactOnlyLoggingChanel = clientSettingInfo.reactOnlyLoggingChanel
 
    }
 
@@ -60,9 +67,10 @@ object Client : ListenerAdapter() {
 
    override fun onMessageReceived(event: MessageReceivedEvent) {
 
-      if ((event.author.isBot && !userIdsWhiteList.contains(event.author.idLong)) ||
-         event.message.contentDisplay.isEmpty() || event.channel.idLong != loggingChannelId
-      ) return
+      if (event.author.isBot && !userIdsWhiteList.contains(event.author.idLong)) return
+      if (reactOnlyLoggingChanel && event.channel.idLong != loggingChannelId) return
+
+      if (event.message.contentDisplay.isEmpty()) return
 
       CommandManager.executeCommand(event)
 

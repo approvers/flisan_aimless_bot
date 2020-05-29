@@ -4,19 +4,23 @@ import io.github.loxygen.aimlessbot.lib.commands.CommandInfo
 import io.github.loxygen.aimlessbot.lib.commands.CommandResult
 import io.github.loxygen.aimlessbot.lib.commands.annotations.Argument
 import io.github.loxygen.aimlessbot.lib.commands.annotations.SubCommand
+import io.github.loxygen.aimlessbot.lib.contentEquals
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
-import java.lang.reflect.Method
 import kotlin.math.min
+import kotlin.reflect.KCallable
+import kotlin.reflect.KTypeProjection
+import kotlin.reflect.full.createType
+import kotlin.reflect.full.findAnnotation
 
 /**
  * 接頭辞つきコマンドを実際に実行する機能を提供する†抽象クラス†。
  * あらゆる接頭辞つきコマンドはこれを継承してください
  */
-abstract class PrefixnessCommandExecutor(
+abstract class PrefixnessCommand(
    identify: String,
    name: String,
    description: String
-) : ABCCommandExecutor() {
+) : AbstractCommand() {
 
    override val commandInfo: CommandInfo? = CommandInfo(
       identify, name, description
@@ -25,21 +29,26 @@ abstract class PrefixnessCommandExecutor(
    /**
     * Prefixfulコマンドを実装するメソッドとそれについてるアノテーションのキャッシュ
     */
-   private val prefixfulMethodCache: List<Pair<Method, SubCommand>>
+   private val prefixfulMethodCache: List<Pair<KCallable<CommandResult>, SubCommand>>
 
    init {
       // メソッドは変わらないし毎回リフレクションゴリゴリするの嫌なので(個人の感想)
       // ここでメソッドとアノテーションをキャッシュしてしまいます
-      val prefixfulMethods: MutableList<Pair<Method, SubCommand>> = mutableListOf()
+      val prefixfulMethods: MutableList<Pair<KCallable<CommandResult>, SubCommand>> = mutableListOf()
 
-      for (method in this.javaClass.methods) {
-         if (method.returnType.name != "io.github.loxygen.aimlessbot.lib.commands.CommandResult") continue
+      val expectedParamTypes = listOf(
+         this::class.createType(),
+         List::class.createType(listOf(KTypeProjection.invariant(String::class.createType()))),
+         MessageReceivedEvent::class.createType()
+      )
 
-         val commandAnt = method.getAnnotation(SubCommand::class.java)
+      for (callable in this::class.members) {
+         if (callable.returnType != CommandResult::class.createType()) continue
+         val commandAnt = callable.findAnnotation<SubCommand>() ?: continue
+         if (!(callable.parameters.map { it.type } contentEquals expectedParamTypes)) continue
 
-         if (commandAnt != null) {
-            prefixfulMethods.add(Pair(method, commandAnt))
-         }
+         @Suppress("UNCHECKED_CAST") // ゆるしてください
+         prefixfulMethods.add(Pair(callable as KCallable<CommandResult>, commandAnt))
       }
 
       prefixfulMethodCache = prefixfulMethods.toList()
@@ -70,11 +79,11 @@ abstract class PrefixnessCommandExecutor(
       } ?: return CommandResult.UNKNOWN_SUB_COMMAND
 
       // メソッドを叩いて実行結果を返す
-      return method.invoke(
+      return method.call(
          this,
          content.subList(min(content.size, 2), content.size),
          event
-      ) as CommandResult
+      )
    }
 
    /**
@@ -82,11 +91,12 @@ abstract class PrefixnessCommandExecutor(
     * @param identify サブコマンドの識別文字
     * @param argCount 与えられた引数の数
     */
-   private fun fetchSubCommandMethodToRun(identify: String, argCount: Int): Method? {
+   private fun fetchSubCommandMethodToRun(identify: String, argCount: Int): KCallable<CommandResult>? {
 
       // サブコマンドが与えられていなければexecNoSubCommand()を返す
       if (identify == "") {
-         return this.javaClass.getMethod("execSingleCommand", List::class.java, MessageReceivedEvent::class.java)
+         @Suppress("UNCHECKED_CAST") // ゆるしてください
+         return this::class.members.find { it.name == "sendHelpText" } as KCallable<CommandResult>
       }
 
       for (method in this.prefixfulMethodCache) {
@@ -94,7 +104,7 @@ abstract class PrefixnessCommandExecutor(
          if (method.second.identify != identify) continue
 
          // --- 引数の数が受け入れ可能か確認する
-         val argumentAnt = method.first.getAnnotation(Argument::class.java)
+         val argumentAnt = method.first.findAnnotation<Argument>()
 
          // 引数を取らない(@Argumentアノテーションがない)のに引数が提供されている場合は拒否
          if (argumentAnt == null && argCount > 0) throw IllegalArgumentException()
@@ -125,16 +135,15 @@ abstract class PrefixnessCommandExecutor(
    @SubCommand(identify = "help", name = "ヘルプ", description = "ヘルプを表示します。")
    @Argument(count = 0, denyLess = false, denyMore = false)
    fun sendHelpText(args: List<String>, event: MessageReceivedEvent): CommandResult {
-      var helpText = ""
-      helpText += "** --- ${this.commandInfo!!.name} (`${this.commandInfo!!.identify}`) --- **\n"
-      helpText += "${this.commandInfo!!.description}\n```"
-
-      for (method in this.prefixfulMethodCache) {
-         helpText += "${method.second.name} (${method.second.identify})\n"
-         helpText += "  ${method.second.description}\n``````"
-      }
-      helpText = helpText.substring(0, helpText.length - 3)
-      event.channel.sendMessage(helpText).queue()
+      event.channel.sendMessage(buildString {
+         append("** --- ${commandInfo!!.name} (`${commandInfo!!.identify}`) --- **\n")
+         append("${commandInfo!!.description}\n```")
+         prefixfulMethodCache.forEach {
+            append("${it.second.name} (${it.second.identify}")
+            append("  ${it.second.description}")
+         }
+         delete(length - 3, length)
+      }).queue()
       return CommandResult.SUCCESS
    }
 

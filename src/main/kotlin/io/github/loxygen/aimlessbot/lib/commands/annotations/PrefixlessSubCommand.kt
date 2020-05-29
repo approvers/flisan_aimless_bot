@@ -1,7 +1,7 @@
 package io.github.loxygen.aimlessbot.lib.commands.annotations
 
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import io.github.loxygen.aimlessbot.lib.commands.CommandResult
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
 /**
  * Prefixを付けすに実行するコマンドのメソッドにつけるアノテーション。
@@ -10,9 +10,9 @@ import io.github.loxygen.aimlessbot.lib.commands.CommandResult
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class PrefixlessCommand(
-    /**
-     * この正規表現にメッセージがマッチすると、コマンドが発火される。
-     */
-    val triggerRegex: String
+annotation class PrefixlessSubCommand(
+   /**
+    * この正規表現にメッセージがマッチすると、コマンドが発火される。
+    */
+   val triggerRegex: String
 )

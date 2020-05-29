@@ -4,7 +4,7 @@ import io.github.loxygen.aimlessbot.lib.commands.CommandInfo
 import io.github.loxygen.aimlessbot.lib.commands.CommandResult
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
-abstract class ABCCommandExecutor {
+abstract class AbstractCommand {
 
    /**
     * コマンドの情報。nullを代入するとhelpなどが無効になる
@@ -24,7 +24,7 @@ abstract class ABCCommandExecutor {
     * @param event メッセージ受診時に発火されたイベント
     * @return コマンド実行の結果
     */
-   abstract fun executeCommand(content: List<String>, event: MessageReceivedEvent): CommandResult
+   protected abstract fun executeCommand(content: List<String>, event: MessageReceivedEvent): CommandResult
 
    /**
     * コマンドを実行する

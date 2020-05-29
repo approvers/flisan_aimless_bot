@@ -1,13 +1,13 @@
 package io.github.loxygen.aimlessbot.cmds.tests
 
 import io.github.loxygen.aimlessbot.lib.commands.CommandResult
-import io.github.loxygen.aimlessbot.lib.commands.abc.PrefixlessCommandExecutor
-import io.github.loxygen.aimlessbot.lib.commands.annotations.PrefixlessCommand
+import io.github.loxygen.aimlessbot.lib.commands.abc.PrefixlessCommand
+import io.github.loxygen.aimlessbot.lib.commands.annotations.PrefixlessSubCommand
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
-object OoooohShiiit : PrefixlessCommandExecutor() {
+object OoooohShiiit : PrefixlessCommand() {
 
-   @PrefixlessCommand(triggerRegex = "o+hshi+t")
+   @PrefixlessSubCommand(triggerRegex = "o+hshi+t")
    fun ooooohShiiiit(content: String, event: MessageReceivedEvent): CommandResult {
       event.channel.sendMessage("a rat!").queue()
       return CommandResult.SUCCESS
