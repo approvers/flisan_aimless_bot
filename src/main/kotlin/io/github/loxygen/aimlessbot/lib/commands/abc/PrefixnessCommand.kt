@@ -139,8 +139,8 @@ abstract class PrefixnessCommand(
          append("** --- ${commandInfo!!.name} (`${commandInfo!!.identify}`) --- **\n")
          append("${commandInfo!!.description}\n```")
          prefixfulMethodCache.forEach {
-            append("${it.second.name} (${it.second.identify}")
-            append("  ${it.second.description}")
+            append("${it.second.name} (${it.second.identify})\n")
+            append("  ${it.second.description}\n``````")
          }
          delete(length - 3, length)
       }).queue()
