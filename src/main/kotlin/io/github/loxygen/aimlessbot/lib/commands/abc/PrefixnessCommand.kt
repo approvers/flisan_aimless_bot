@@ -65,7 +65,7 @@ abstract class PrefixnessCommand(
     */
    override fun executeCommand(content: List<String>, event: MessageReceivedEvent): CommandResult {
 
-   val subCommandContent = content.subList(1, content.size)
+      val subCommandContent = content.subList(1, content.size)
       val searchQuery = if (subCommandContent.isNotEmpty()) subCommandContent[0] else ""
 
       // 実行対象のメソッドを取得する
