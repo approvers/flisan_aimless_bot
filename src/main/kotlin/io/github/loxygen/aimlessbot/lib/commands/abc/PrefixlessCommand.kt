@@ -37,10 +37,9 @@ abstract class PrefixlessCommand : AbstractCommand() {
       for (callable in this::class.members) {
          if (callable.returnType != CommandResult::class.createType()) continue
          val commandAnt = callable.findAnnotation<PrefixlessSubCommand>() ?: continue
-         if (!(callable.parameters.map { it.type } contentEquals expectedParamTypes)) continue
-
-         @Suppress("UNCHECKED_CAST") // ゆるしてください
-         prefixlessMethods.add(Pair(callable as KCallable<CommandResult>, commandAnt))
+         if ((callable.parameters.map { it.type } contentEquals expectedParamTypes))
+            @Suppress("UNCHECKED_CAST") // ゆるしてください
+            prefixlessMethods.add(Pair(callable as KCallable<CommandResult>, commandAnt))
       }
 
       prefixlessMethodCache = prefixlessMethods.toList()

@@ -75,13 +75,12 @@ object CommandManager {
 
    private fun sendHelp(channel: MessageChannel) {
       channel.sendMessage(buildString {
-         append("***†Flisan Aimless Bot†***\n```")
+         append("***†Flisan Aimless Bot†***\n")
          COMMANDS.forEach {
             val info = it.commandInfo ?: return@forEach
-            append("${info.name} (//${info.identify})\n")
-            append("  ${info.description}\n``````")
+            append("```${info.name} (//${info.identify})\n")
+            append("  ${info.description}\n```")
          }
-         delete(length - 3, length)
          append("各コマンドの詳細は`//<command.name>`を叩くと表示されます")
       }).queue()
    }
