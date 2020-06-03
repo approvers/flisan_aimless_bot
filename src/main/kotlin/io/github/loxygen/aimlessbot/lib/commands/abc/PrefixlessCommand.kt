@@ -74,11 +74,7 @@ abstract class PrefixlessCommand : AbstractCommand() {
     * @param content メッセージの中身
     */
    private fun fetchSubCommandMethodToRun(content: String): KCallable<CommandResult>? {
-      for (method in this.prefixlessMethodCache) {
-         if (!Regex(method.second.triggerRegex).containsMatchIn(content)) continue
-         return method.first
-      }
-      return null
+      return this.prefixlessMethodCache.find { Regex(it.second.triggerRegex).containsMatchIn(content) }?.first
    }
 
 }

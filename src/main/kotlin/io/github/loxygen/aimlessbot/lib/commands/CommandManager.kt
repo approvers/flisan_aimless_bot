@@ -49,19 +49,25 @@ object CommandManager {
       // 結果に応じて処理をする
       when (result) {
          CommandResult.SUCCESS -> {
-            println("command succeeded:\n${event.author.name}\n  ${event.message.contentDisplay}")
+            println("[SUCCEED] by ${event.author.name}\n  ${event.message.contentDisplay}")
          }
          CommandResult.FAILED -> {
             event.channel.sendMessage("ズサーッ！(コマンドがコケた音)").queue()
+            println("[FAILED] by ${event.author.name}\n  ${event.message.contentDisplay}")
          }
          CommandResult.INVALID_ARGUMENTS -> {
             event.channel.sendMessage("引数がおかしいみたいです").queue()
+            println("[INVALID ARGS] by ${event.author.name}\n  ${event.message.contentDisplay}")
          }
          CommandResult.UNKNOWN_MAIN_COMMAND -> {
-            if (doesHavePrefix) event.channel.sendMessage("それ is 何").queue()
+            if (doesHavePrefix) {
+               event.channel.sendMessage("それ is 何").queue()
+               println("[UNKNOWN MAIN CMD] by ${event.author.name}\n  ${event.message.contentDisplay}")
+            }
          }
          CommandResult.UNKNOWN_SUB_COMMAND -> {
             event.channel.sendMessage("そのサブコマンド is 何").queue()
+            println("[UNKNOWN SUB CMD] by ${event.author.name}\n  ${event.message.contentDisplay}")
          }
       }
 

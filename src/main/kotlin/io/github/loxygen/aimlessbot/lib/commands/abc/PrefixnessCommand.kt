@@ -45,10 +45,10 @@ abstract class PrefixnessCommand(
       for (callable in this::class.members) {
          if (callable.returnType != CommandResult::class.createType()) continue
          val commandAnt = callable.findAnnotation<SubCommand>() ?: continue
-         if (!(callable.parameters.map { it.type } contentEquals expectedParamTypes)) continue
 
-         @Suppress("UNCHECKED_CAST") // ゆるしてください
-         prefixfulMethods.add(Pair(callable as KCallable<CommandResult>, commandAnt))
+         if ((callable.parameters.map { it.type } contentEquals expectedParamTypes))
+            @Suppress("UNCHECKED_CAST") // ゆるしてください
+            prefixfulMethods.add(Pair(callable as KCallable<CommandResult>, commandAnt))
       }
 
       prefixfulMethodCache = prefixfulMethods.toList()
@@ -65,7 +65,7 @@ abstract class PrefixnessCommand(
     */
    override fun executeCommand(content: List<String>, event: MessageReceivedEvent): CommandResult {
 
-      val subCommandContent = content.subList(1, content.size)
+   val subCommandContent = content.subList(1, content.size)
       val searchQuery = if (subCommandContent.isNotEmpty()) subCommandContent[0] else ""
 
       // 実行対象のメソッドを取得する
@@ -96,7 +96,7 @@ abstract class PrefixnessCommand(
       // サブコマンドが与えられていなければexecNoSubCommand()を返す
       if (identify == "") {
          @Suppress("UNCHECKED_CAST") // ゆるしてください
-         return this::class.members.find { it.name == "sendHelpText" } as KCallable<CommandResult>
+         return this::class.members.find { it.name == "execSingleCommand" } as KCallable<CommandResult>
       }
 
       for (method in this.prefixfulMethodCache) {
@@ -137,12 +137,11 @@ abstract class PrefixnessCommand(
    fun sendHelpText(args: List<String>, event: MessageReceivedEvent): CommandResult {
       event.channel.sendMessage(buildString {
          append("** --- ${commandInfo!!.name} (`${commandInfo!!.identify}`) --- **\n")
-         append("${commandInfo!!.description}\n```")
+         append("${commandInfo!!.description}\n")
          prefixfulMethodCache.forEach {
-            append("${it.second.name} (${it.second.identify})\n")
-            append("  ${it.second.description}\n``````")
+            append("```${it.second.name} (${it.second.identify})\n")
+            append("  ${it.second.description}\n```")
          }
-         delete(length - 3, length)
       }).queue()
       return CommandResult.SUCCESS
    }
